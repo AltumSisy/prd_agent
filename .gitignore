@@ -1,0 +1,44 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# IDE
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Log files
+*.log
+
+# Session exports
+pi_agent/pi-session-*.html
+
+# Misc temp files
+nul
+
+# output
+pi_agent/output
+agent/output
+pi_agent/agent/output
+
+# test
+pi_agent/test
+server/test
+web/test
+agent/test
+flue_agent/test

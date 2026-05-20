@@ -1,0 +1,44 @@
+/* Tailwind base styles */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Global styles */
+:root {
+  --accent-purple: #8B5CF6;
+  --accent-light: #A78BFA;
+  --accent-dark: #7C3AED;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: #FAFAFA;
+  color: #171717;
+}
+
+/* Glassmorphism effect for chat preview */
+.glass-effect {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* Gradient background for hero */
+.hero-gradient {
+  background: linear-gradient(
+    135deg,
+    #FAFAFA 0%,
+    #F5F5F5 50%,
+    rgba(139, 92, 246, 0.05) 100%
+  );
+}
+
+/* Smooth hover transitions */
+.hover-lift {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}

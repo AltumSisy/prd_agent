@@ -1,0 +1,16 @@
+{
+  "name": "prd-agent",
+  "workspaces": [
+    "web",
+    "server",
+    "pi_agent/agent"
+  ],
+  "dependencies": {
+    "@earendil-works/pi-ai": "^0.75.3",
+    "eventsource-parser": "^3.0.8"
+  },
+  "devDependencies": {
+    "happy-dom": "^20.9.0",
+    "vitest": "^4.1.6"
+  }
+}
