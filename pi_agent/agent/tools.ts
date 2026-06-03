@@ -220,9 +220,10 @@ export const querySqlTool = defineTool({
       };
 
       // 构建命令参数
+      // 注意：fields 参数需要用引号包裹，避免逗号后的空格被 argparse 解析为新参数
       const args = [
         table,
-        `--fields`, fields,
+        `--fields`, escapeShellArg(fields),
         `--where`, escapeShellArg(where),
         `--limit`, String(safeLimit),
         `--format`, `json`,
