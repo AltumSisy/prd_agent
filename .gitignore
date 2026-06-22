@@ -38,7 +38,18 @@ pi_agent/agent/output
 
 # test
 pi_agent/test
+pi_agent/test_output
+pi_agent/tests/
 server/test
 web/test
 agent/test
 flue_agent/test
+
+# pytest cache
+.pytest_cache/
+pytest_cache/
+
+# test output files
+test_output/
+*_test.py
+test_*.py

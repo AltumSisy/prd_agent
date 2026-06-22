@@ -11,7 +11,13 @@ prd_agent/
 ├── pi_agent/               # Agent 核心模块
 │   ├── agent/              # TypeScript Agent (npm workspace)
 │   ├── commands/           # Python CLI 命令
-│   └── cli.py              # SAP 程序读取工具
+│   │   ├── core/           # 核心工具类
+│   │   │   ├── connection.py    # SAP 连接封装
+│   │   │   ├── program.py       # 程序读取器
+│   │   │   └── function.py      # 函数读取器
+│   │   ├── program_cmd.py       # 程序命令
+│   │   └── function_cmd.py      # 函数命令
+│   └── cli.py              # SAP 工具 CLI 入口
 └── flue_agent/             # Flue Agent 后端 (独立部署)
 ```
 
@@ -27,6 +33,13 @@ prd_agent/
         │  POST /api/chat/:sid  │  createSession()      │  Python CLI
         │  SSE 流式响应          │  subscribeEvents()   │  SAP RFC
         └───────────────────────┴───────────────────────┘
+                                        │
+                                ┌───────┴───────┐
+                                │   SAP Tools   │
+                                │  (Python CLI) │
+                                ├───────┬───────┤
+                                │program│function│
+                                └───────┴───────┘
 ```
 
 ## 子项目说明
@@ -38,6 +51,32 @@ prd_agent/
 | [pi_agent/](./pi_agent/) | Agent 核心模块 | TypeScript + Python |
 | [pi_agent/agent/](./pi_agent/agent/) | TypeScript Agent 实现 | @earendil-works/pi-ai |
 | [flue_agent/](./flue_agent/) | 简化版 Agent 后端 | @flue/runtime + DeepSeek |
+
+## Agent 工具
+
+pi_agent 提供以下自定义工具供 AI Agent 调用：
+
+| 工具 | 功能 | 参数 |
+|------|------|------|
+| **download_program** | 下载 SAP 程序源代码 | program_name, include_includes |
+| **query_sql** | 查询 SAP 表数据 (RFC_READ_TABLE) | table, fields, where, limit |
+| **download_function** | 下载 SAP 函数模块源代码 | function_group, function_name |
+| **list_function_group** | 列出函数组中的所有函数 | function_group, download_all |
+
+### CLI 使用示例
+
+```bash
+# 下载程序
+python cli.py program ZQMR025 --include    # 下载程序及其 Include
+
+# 下载函数模块
+python cli.py function ZCRM Z_CREATE_CUSTOMER_KNVV    # 下载单个函数
+python cli.py function ZCRM                            # 列出函数组所有函数
+python cli.py function ZCRM --download-all             # 下载函数组所有函数
+
+# 查询表数据
+python cli.py rfcquery KNA1 --fields KUNNR,NAME1 --where "KUNNR = '000001'"
+```
 
 ## 快速开始
 
@@ -66,7 +105,26 @@ SAP_PASSWORD=YOUR_PASSWORD
 
 ### 3. 启动服务
 
-**方式一：启动 Server + pi_agent**
+**方式一：一键启动（Windows，支持局域网）**
+
+双击 `start.bat` 即可启动 Server + Web：
+
+```
+start.bat
+```
+
+启动后会显示访问地址：
+```
+Local access:
+  Web:  http://localhost:5173
+  API:  http://localhost:3000
+
+LAN access:
+  Web:  http://192.168.x.x:5173
+  API:  http://192.168.x.x:3000
+```
+
+**方式二：手动启动（Server + pi_agent）**
 
 ```bash
 # 终端 1 - 启动后端服务
@@ -78,7 +136,7 @@ cd web && npm run dev
 
 访问 http://localhost:5173
 
-**方式二：启动 Flue Agent**
+**方式三：启动 Flue Agent**
 
 ```bash
 # 终端 1 - 启动 Flue Agent

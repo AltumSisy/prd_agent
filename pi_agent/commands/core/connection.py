@@ -73,3 +73,18 @@ class Connection:
         """获取 Include 对象"""
         import sap.adt.programs
         return sap.adt.programs.Include(self._conn, name)
+
+    def get_function_group(self, name: str):
+        """获取 Function Group 对象"""
+        import sap.adt.function
+        return sap.adt.function.FunctionGroup(self._conn, name)
+
+    def get_function_module(self, group_name: str, func_name: str):
+        """获取 Function Module 对象
+
+        Args:
+            group_name: 函数组名
+            func_name: 函数名
+        """
+        import sap.adt.function
+        return sap.adt.function.FunctionModule(self._conn, func_name, group_name)

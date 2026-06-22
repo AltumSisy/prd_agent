@@ -100,7 +100,7 @@ export async function createSession(config: AgentConfig = {}) {
     customTools: agentTools,
 
     // 内置工具 + 自定义工具
-    tools: ["read", "bash", "download_program", "query_sql"],
+    tools: ["read", "bash", "download_program", "query_sql", "download_function", "list_function_group"],
   });
 
   return {

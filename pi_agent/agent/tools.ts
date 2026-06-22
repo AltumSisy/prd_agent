@@ -1,10 +1,12 @@
 /**
  * Agent Custom Tools
- * 
+ *
  * 定义 Agent 可调用的工具：
  * 1. download_program - 下载 SAP 程序源代码
  * 2. query_sql - 查询 SAP 表数据
- * 
+ * 3. download_function - 下载 SAP 函数模块源代码
+ * 4. list_function_group - 列出函数组中的所有函数
+ *
  * 每个工具包含：
  * - 参数验证（TypeBox schema）
  * - 清晰的描述和示例
@@ -282,10 +284,280 @@ export const querySqlTool = defineTool({
 });
 
 // ============================================
+// Tool: Download Function
+// ============================================
+
+/**
+ * 从 SAP 服务器下载函数模块源代码
+ *
+ * 用途：
+ * - 分析函数逻辑时，下载函数源代码
+ * - 查看函数参数定义和函数体
+ *
+ * 返回：
+ * - 函数源代码文件路径
+ * - 参数信息（IMPORTING/EXPORTING/CHANGING/TABLES/EXCEPTIONS）
+ * - 行数统计
+ */
+export const downloadFunctionTool = defineTool({
+  name: "download_function",
+  label: "Download Function",
+  description: `从 SAP 服务器下载函数模块源代码到本地。
+
+用途：当用户询问函数逻辑问题（如"这个函数做什么"、"函数参数有哪些"）时，下载相关函数进行分析。
+
+返回：
+- source_file: 源代码文件路径
+- parameters: 函数参数信息（IMPORTING/EXPORTING/CHANGING/TABLES/EXCEPTIONS）
+- lines: 总行数
+- body_lines: 函数体行数（不含参数定义）`,
+
+  parameters: Type.Object({
+    function_group: Type.String({
+      description: "函数组名，如 ZCRM, RFC_READ_TABLE",
+    }),
+    function_name: Type.String({
+      description: "函数名，如 Z_CREATE_CUSTOMER_KNVV, RFC_READ_TABLE",
+    }),
+    output_dir: Type.Optional(Type.String({
+      description: "保存目录，默认 ./output",
+    })),
+  }),
+
+  execute: async (_toolCallId, params) => {
+    const { function_group, function_name, output_dir = "./output" } = params;
+
+    console.log(`[download_function] 开始执行`, {
+      function_group,
+      function_name,
+      output_dir,
+    });
+
+    // 参数验证：函数组和函数名不能为空
+    if (!function_group?.trim()) {
+      console.error(`[download_function] 参数验证失败: 缺少函数组名`);
+      return {
+        content: [{
+          type: "text",
+          text: "❌ 错误：必须提供函数组名。\n\n示例：function_group='ZCRM'",
+        }],
+        details: { success: false, error: "FUNCTION_GROUP_REQUIRED" },
+      };
+    }
+
+    if (!function_name?.trim()) {
+      console.error(`[download_function] 参数验证失败: 缺少函数名`);
+      return {
+        content: [{
+          type: "text",
+          text: "❌ 错误：必须提供函数名。\n\n示例：function_name='Z_CREATE_CUSTOMER_KNVV'",
+        }],
+        details: { success: false, error: "FUNCTION_NAME_REQUIRED" },
+      };
+    }
+
+    try {
+      // 构建命令参数
+      const args = [
+        function_group,
+        function_name,
+        `--output-dir`, output_dir,
+        `--format`, `json`,
+      ];
+
+      console.log(`[download_function] 执行 Python CLI`, {
+        cli: CLI_PATH,
+        args: args.join(" "),
+      });
+
+      // 执行 Python CLI
+      const { stdout, stderr } = await execAsync(
+        `python "${CLI_PATH}" function ${args.join(" ")}`,
+        {
+          cwd: PI_AGENT_DIR,
+          maxBuffer: 10 * 1024 * 1024, // 10MB buffer
+        }
+      );
+
+      if (stderr && !stderr.includes("WARNING")) {
+        console.error(`[download_function] stderr:`, stderr);
+      }
+
+      // 解析 JSON 输出
+      const result = JSON.parse(stdout.trim());
+
+      // 检查执行结果
+      if (result.success) {
+        console.log(`[download_function] 执行成功`, {
+          function_group: result.function_group,
+          function_name: result.function_name,
+          source_file: result.source_file,
+          lines: result.lines,
+          body_lines: result.body_lines,
+          parameters_count: Object.keys(result.parameters || {}).length,
+        });
+      } else {
+        console.error(`[download_function] 执行失败:`, result.error);
+      }
+
+      return {
+        content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+        details: result,
+      };
+    } catch (error) {
+      console.error(`[download_function] 执行失败:`, error);
+
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const result = {
+        success: false,
+        function_group: function_group.toUpperCase(),
+        function_name: function_name.toUpperCase(),
+        source_file: null,
+        lines: 0,
+        parameters: {},
+        body_lines: 0,
+        error: errorMessage,
+      };
+
+      return {
+        content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+        details: result,
+      };
+    }
+  },
+});
+
+// ============================================
+// Tool: List Function Group
+// ============================================
+
+/**
+ * 列出 SAP 函数组中的所有函数模块
+ *
+ * 用途：
+ * - 查看函数组包含哪些函数
+ * - 找到相关函数名后下载具体函数分析
+ *
+ * 返回：
+ * - 函数组名
+ * - 函数列表
+ * - （可选）下载的函数源代码文件路径
+ */
+export const listFunctionGroupTool = defineTool({
+  name: "list_function_group",
+  label: "List Function Group",
+  description: `列出 SAP 函数组中的所有函数模块，可选择下载所有函数源代码。
+
+用途：当用户想知道某个函数组包含哪些函数时，列出函数列表。
+
+返回：
+- function_group: 函数组名
+- functions: 函数名列表
+- function_modules: 下载的函数文件路径（如果 download_all=true）`,
+
+  parameters: Type.Object({
+    function_group: Type.String({
+      description: "函数组名，如 ZCRM, ZSD",
+    }),
+    download_all: Type.Optional(Type.Boolean({
+      description: "是否下载所有函数源代码，默认 false（只列出函数名）",
+    })),
+    output_dir: Type.Optional(Type.String({
+      description: "保存目录，默认 ./output（仅当 download_all=true 时使用）",
+    })),
+  }),
+
+  execute: async (_toolCallId, params) => {
+    const { function_group, download_all = false, output_dir = "./output" } = params;
+
+    console.log(`[list_function_group] 开始执行`, {
+      function_group,
+      download_all,
+      output_dir,
+    });
+
+    // 参数验证：函数组名不能为空
+    if (!function_group?.trim()) {
+      console.error(`[list_function_group] 参数验证失败: 缺少函数组名`);
+      return {
+        content: [{
+          type: "text",
+          text: "❌ 错误：必须提供函数组名。\n\n示例：function_group='ZCRM'",
+        }],
+        details: { success: false, error: "FUNCTION_GROUP_REQUIRED" },
+      };
+    }
+
+    try {
+      // 构建命令参数
+      const args = [
+        function_group,
+        `--output-dir`, output_dir,
+        download_all ? `--download-all` : "",
+        `--format`, `json`,
+      ].filter(Boolean);
+
+      console.log(`[list_function_group] 执行 Python CLI`, {
+        cli: CLI_PATH,
+        args: args.join(" "),
+      });
+
+      // 执行 Python CLI
+      const { stdout, stderr } = await execAsync(
+        `python "${CLI_PATH}" function ${args.join(" ")}`,
+        {
+          cwd: PI_AGENT_DIR,
+          maxBuffer: 10 * 1024 * 1024, // 10MB buffer
+        }
+      );
+
+      if (stderr && !stderr.includes("WARNING")) {
+        console.error(`[list_function_group] stderr:`, stderr);
+      }
+
+      // 解析 JSON 输出
+      const result = JSON.parse(stdout.trim());
+
+      // 检查执行结果
+      if (result.success) {
+        console.log(`[list_function_group] 执行成功`, {
+          function_group: result.function_group,
+          functions_count: result.functions?.length || 0,
+          downloaded_count: Object.keys(result.function_modules || {}).length,
+        });
+      } else {
+        console.error(`[list_function_group] 执行失败:`, result.error);
+      }
+
+      return {
+        content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+        details: result,
+      };
+    } catch (error) {
+      console.error(`[list_function_group] 执行失败:`, error);
+
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const result = {
+        success: false,
+        function_group: function_group.toUpperCase(),
+        functions: [],
+        function_modules: {},
+        error: errorMessage,
+      };
+
+      return {
+        content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+        details: result,
+      };
+    }
+  },
+});
+
+// ============================================
 // Export
 // ============================================
 
 /**
  * 所有工具列表
  */
-export const agentTools = [downloadProgramTool, querySqlTool];
+export const agentTools = [downloadProgramTool, querySqlTool, downloadFunctionTool, listFunctionGroupTool];
