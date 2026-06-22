@@ -12,13 +12,6 @@ from pathlib import Path
 # 设置 UTF-8 输出
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
-# 添加 sapcli 到 Python path
-sys.path.insert(0, 'D:/sapworkspace/ZCRM/sapcli')
-
-# 导入命令注册器
-from commands import CommandRegistry
-from commands.core.connection import Connection
-
 
 def load_env_file():
     """加载环境配置文件"""
@@ -32,21 +25,24 @@ def load_env_file():
                     os.environ.setdefault(key, value)  # 使用 setdefault 避免覆盖
 
 
-# 在模块加载时立即加载环境变量
+# 加载环境变量并设置 PYTHONPATH（如果配置了）
 load_env_file()
+pythonpath = os.environ.get('PYTHONPATH')
+if pythonpath:
+    sys.path.insert(0, pythonpath)
+
+# 导入命令注册器
+from commands import CommandRegistry
+from commands.core.connection import Connection
 
 
 def get_env_value(key: str, default: str = None) -> str:
-    """获取环境变量值，加载 .env 文件"""
-    load_env_file()
+    """获取环境变量值"""
     return os.getenv(key, default)
 
 
 def main():
     """主函数"""
-    # 加载环境配置
-    load_env_file()
-
     # 创建主 parser
     parser = argparse.ArgumentParser(
         description='SAP CLI 工具集',

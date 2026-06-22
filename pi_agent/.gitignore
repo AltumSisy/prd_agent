@@ -1,0 +1,10 @@
+# Output directories
+output/
+output2/
+test_output/
+
+# ABAP files
+*.abap
+
+# Test files
+tests/

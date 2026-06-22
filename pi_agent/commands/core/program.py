@@ -144,6 +144,7 @@ class ProgramReader:
         Returns:
             List[str]: Include 名称列表
         """
-        pattern = r'INCLUDE\s+(\w+)\s*\.'
+        # 支持 INCLUDE name. 和 INCLUDE: name. 两种格式
+        pattern = r'INCLUDE:??\s+(\w+)\s*\.'
         matches = re.findall(pattern, source, re.IGNORECASE)
         return [m.upper() for m in matches]
