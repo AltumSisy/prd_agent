@@ -3,9 +3,16 @@ RFC Query 命令 - 通过 RFC_READ_TABLE 函数读取 SAP 表数据
 """
 
 import json
+import os
+from pathlib import Path
 from argparse import ArgumentParser
 
 from commands.base import Command
+
+# 设置 SAP RFC SDK 路径（相对于项目根目录）
+_sdk_lib_path = Path(__file__).parent.parent.parent / "nwrfcsdk" / "nwrfcsdk" / "lib"
+if _sdk_lib_path.exists():
+    os.environ['PATH'] = str(_sdk_lib_path) + os.pathsep + os.environ.get('PATH', '')
 
 
 class RfcQueryCommand(Command):

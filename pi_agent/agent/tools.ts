@@ -122,13 +122,20 @@ export const downloadProgramTool = defineTool({
       console.error(`[download_program] 执行失败:`, error);
 
       const errorMessage = error instanceof Error ? error.message : String(error);
+
+      // 智能错误分析：识别可能的类型混淆
+      let enhancedError = errorMessage;
+      if (errorMessage.includes("not found") || errorMessage.includes("不存在")) {
+        enhancedError = `${errorMessage}\n提示: 该名称可能是一个函数模块而非程序。如果是函数，请使用 download_function 工具。`;
+      }
+
       const result = {
         success: false,
         program: program_name.toUpperCase(),
         source_file: null,
         lines: 0,
         includes: {},
-        error: errorMessage,
+        error: enhancedError,
       };
 
       return {
@@ -408,6 +415,13 @@ export const downloadFunctionTool = defineTool({
       console.error(`[download_function] 执行失败:`, error);
 
       const errorMessage = error instanceof Error ? error.message : String(error);
+
+      // 智能错误分析：识别可能的类型混淆
+      let enhancedError = errorMessage;
+      if (errorMessage.includes("not found") || errorMessage.includes("不存在")) {
+        enhancedError = `${errorMessage}\n提示: 该函数模块或函数组不存在。可能是程序而非函数，请尝试使用 download_program 工具。`;
+      }
+
       const result = {
         success: false,
         function_group: function_group.toUpperCase(),
@@ -416,7 +430,7 @@ export const downloadFunctionTool = defineTool({
         lines: 0,
         parameters: {},
         body_lines: 0,
-        error: errorMessage,
+        error: enhancedError,
       };
 
       return {

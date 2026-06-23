@@ -1,6 +1,9 @@
 # Dependencies
 node_modules/
 
+# External SDKs
+nwrfcsdk/
+
 # Build output
 dist/
 
